@@ -1,4 +1,4 @@
-como integrar la ia en una pagina wed, <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -35,6 +35,20 @@ table{border-collapse:collapse;width:100%;font:15px 'Courier New',monospace;marg
 td,th{border:1px solid #e3cdb8;padding:4px 8px;text-align:center}th{background:#FDE3C8;font-family:Arial,sans-serif}
 input,select{font:700 18px 'Courier New',monospace;padding:6px 8px;border:2px solid #4A1D12;border-radius:6px;max-width:100%}
 .ref{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px 10px;font:700 14px 'Courier New',monospace}
+.small{font-size:14px;color:#7a5a4a;margin:6px 0}
+details{background:#fff;border:2px solid #e3cdb8;border-radius:6px;padding:8px 12px;margin:10px 0}
+summary{cursor:pointer;font-weight:700;color:#C8462B}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{background:#fff;color:#C8462B;border:2px solid #C8462B;border-radius:16px;padding:4px 12px;font:700 14px Arial,Helvetica,sans-serif;cursor:pointer}
+.chip:hover{background:#FDE3C8}
+.chat{max-height:380px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px 2px}
+.bub{max-width:88%;padding:8px 12px;border-radius:10px;font-size:16px;line-height:1.5;word-wrap:break-word}
+.bub.me{align-self:flex-end;background:#F4A62A;color:#3A1A10}
+.bub.ai{align-self:flex-start;background:#fff;border:2px solid #e3cdb8}
+.bub.err{background:#F9D9D2;border-color:#C8462B}
+.send{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.send input{flex:1;min-width:200px;font:16px Arial,Helvetica,sans-serif}
+.btn:disabled{opacity:.5;cursor:wait}
 @media(max-width:600px){.hx{min-width:54px;font-size:18px}}
 </style>
 </head>
@@ -42,7 +56,7 @@ input,select{font:700 18px 'Courier New',monospace;padding:6px 8px;border:2px so
 <main>
 <h1>IPv6: reglas de direccionamiento y sintaxis</h1>
 <p class="sub">Ejemplos nuevos cada vez, y conversiones paso a paso.</p>
-<nav><a href="#estructura">Estructura</a><a href="#regla1">Regla 1</a><a href="#regla2">Regla 2</a><a href="#restriccion">Solo un ::</a><a href="#conversiones">Conversiones</a></nav>
+<nav><a href="#estructura">Estructura</a><a href="#regla1">Regla 1</a><a href="#regla2">Regla 2</a><a href="#restriccion">Solo un ::</a><a href="#conversiones">Conversiones</a><a href="#ia">Pregunta a la IA</a></nav>
 
 <section id="estructura"><h2>1. Estructura</h2>
 <p>Una dirección IPv6 tiene 128 bits y se escribe en hexadecimal: 8 grupos de 4 dígitos separados por «:». Cada grupo (hexteto) tiene 16 bits, y 8 × 16 = 128.</p>
@@ -66,7 +80,8 @@ input,select{font:700 18px 'Courier New',monospace;padding:6px 8px;border:2px so
 <button class="btn" onclick="ans(true)">Válida</button><button class="btn" onclick="ans(false)">Inválida</button><button class="btn alt" onclick="nq()">Siguiente</button>
 <div id="qf"></div>
 <h3>Prueba tu propia dirección</h3>
-<input id="fi" size="30" placeholder="ej: 2a02::5:0:0:9" oninput="fv()"><div id="fo"></div></section>
+<input id="fi" size="30" placeholder="ej: 2a02::5:0:0:9" oninput="fv()"><div id="fo"></div>
+<button class="btn alt" onclick="explainAddr()">Explicar esta dirección con IA</button></section>
 
 <section id="conversiones"><h2>5. Conversiones</h2>
 <p>Un dígito hexadecimal (0-9 y A-F) equivale a 4 bits:</p>
@@ -83,6 +98,19 @@ input,select{font:700 18px 'Courier New',monospace;padding:6px 8px;border:2px so
 <p id="pq"></p><input id="pa" size="14" onkeydown="if(event.key=='Enter')cp()">
 <button class="btn" onclick="cp()">Comprobar</button><button class="btn alt" onclick="np()">Otro ejercicio</button>
 <div id="pf"></div></section>
+
+<section id="ia"><h2>6. Pregúntale a la IA (Gemini)</h2>
+<p>Haz preguntas sobre IPv6, el <span class="mono">::</span> o las conversiones. La IA solo responde sobre estos temas.</p>
+<details id="kbox" open><summary>Clave de API de Gemini</summary>
+<p class="small">Consíguela gratis en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. Se guarda solo en esta pestaña (se borra al cerrarla) y no está escrita en el código de la página.</p>
+<input id="gk" type="password" size="28" placeholder="Pega tu clave aquí" autocomplete="off">
+<button class="btn alt" onclick="saveKey()">Guardar</button>
+<select id="gm" title="Modelo"><option value="gemini-3.8-flash">gemini-3.8-flash</option><option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (más ligero)</option></select>
+<div class="small" id="gst"></div></details>
+<div class="chips" id="chips"></div>
+<div class="chat" id="chat" aria-live="polite"></div>
+<div class="send"><input id="gq" placeholder="Escribe tu pregunta…" onkeydown="if(event.key=='Enter')ask()"><button class="btn" id="gs" onclick="ask()">Enviar</button><button class="btn alt" onclick="clearChat()">Limpiar</button></div>
+<p class="small">La IA puede equivocarse: confirma las respuestas con las reglas de arriba.</p></section>
 </main>
 <script>
 const $=s=>document.querySelector(s),r=n=>Math.floor(Math.random()*n);
@@ -167,7 +195,7 @@ function genQ(){let base;do base=comp(gen('zeros').map(trim));while(!base.includ
 let QR,qs=0,qn=0,qa=false;
 function nq(){const s=fresh(genQ);QR=check(s);qa=false;$('#q').textContent=s;$('#qf').innerHTML=''}
 function ans(v){if(qa)return;qa=true;qn++;const ok=!!QR.ok===v;if(ok)qs++;
- $('#qf').innerHTML=`<div class="msg ${ok?'ok':'bad'}"><b>${ok?'Bien.':'Mmm, no.'}</b> ${QR.ok?'Es <b>válida</b>. Completa: <span class="mono">'+QR.full.join(':')+'</span>':'Es <b>inválida</b>: '+QR.reason}</div>`;
+ $('#qf').innerHTML=`<div class="msg ${ok?'ok':'bad'}"><b>${ok?'Bien.':'Mmm, no.'}</b> ${QR.ok?'Es <b>válida</b>. Completa: <span class="mono">'+QR.full.join(':')+'</span>':'Es <b>inválida</b>: '+QR.reason}</div><button class="btn alt" onclick="explainQ()">Explicar con IA</button>`;
  $('#qs').textContent=qs+'/'+qn}
 function fv(){const s=$('#fi').value,c=check(s);if(!s.trim()){$('#fo').innerHTML='';return}
  if(!c.ok){$('#fo').innerHTML=`<div class="msg bad"><b>Inválida:</b> ${c.reason}</div>`;return}
@@ -204,6 +232,51 @@ function np(){const m=['dec-bin','bin-dec','dec-hex','hex-dec','bin-hex','hex-bi
 function cp(){const o=convert(PQ.m,PQ.v),n=x=>x.replace(/\s/g,'').toUpperCase().replace(/^0+(?=.)/,''),ok=n($('#pa').value)==n(o.res);
  $('#pf').innerHTML=`<div class="msg ${ok?'ok':'bad'}"><b>${ok?'Bien hecho.':'Esa no.'}</b> La respuesta es <b class="mono">${o.res}</b>. Así se resuelve:</div>${o.html}`}
 $('#ref').innerHTML=Array.from({length:16},(_,i)=>`<div>${D[i]} = ${i} = ${i.toString(2).padStart(4,'0')}</div>`).join('');
+
+/* 6. IA (Gemini) */
+const SYS='Eres un tutor de redes que ayuda a estudiantes con IPv6: estructura de 128 bits (8 hextetos de 16 bits), regla 1 (quitar los ceros de la izquierda de cada hexteto), regla 2 (comprimir con :: el grupo más largo de hextetos en cero seguidos; si empatan, el primero; un solo hexteto 0 no se comprime), la restricción de usar :: una sola vez (con dos no se sabría cuántos ceros van en cada uno), direcciones especiales (::1 loopback, fe80::/10 enlace local, ff00::/8 multidifusión) y conversiones entre binario, decimal y hexadecimal. Responde siempre en español, claro y breve (máximo 150 palabras), con ejemplos cortos. Si la pregunta no tiene relación con redes o con estos temas, di amablemente que solo puedes ayudar con IPv6 y conversiones numéricas.';
+const CHIPS=['¿Por qué solo se puede usar :: una vez?','Explícame la regla 2 con un ejemplo','¿Qué es la dirección fe80::?','Convierte 192 a binario paso a paso'];
+let hist=[],busy=false,GK='';
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=s=>esc(s).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<span class="mono">$1</span>').replace(/\n/g,'<br>');
+function loadKey(){try{GK=sessionStorage.getItem('gkey')||''}catch(e){}if(GK){$('#gk').value=GK;$('#kbox').open=false;$('#gst').textContent='Clave guardada en esta pestaña.'}}
+function saveKey(){GK=$('#gk').value.trim();try{sessionStorage.setItem('gkey',GK)}catch(e){}
+ $('#gst').textContent=GK?'Clave guardada en esta pestaña.':'Escribe una clave primero.';if(GK)$('#kbox').open=false}
+function bub(role,text){const b=document.createElement('div');b.className='bub '+role;if(role=='ai')b.innerHTML=fmt(text);else b.textContent=text;
+ $('#chat').appendChild(b);$('#chat').scrollTop=$('#chat').scrollHeight;return b}
+function clearChat(){hist=[];$('#chat').innerHTML='';bub('ai','Hola, soy tu tutor de IPv6. Pregúntame lo que quieras o toca una de las preguntas de arriba.')}
+function errMsg(st,j){const m=(j&&j.error&&j.error.message)||'';
+ if(st==400&&/api key/i.test(m))return'La clave de API no es válida. Revísala en Google AI Studio.';
+ if(st==401||st==403)return'La clave no tiene permiso para usar este modelo. Revisa la clave o prueba otro modelo.';
+ if(st==404)return'Ese modelo no está disponible. Elige otro en la lista.';
+ if(st==429)return'Se alcanzó el límite de uso. Espera un minuto o cambia de modelo.';
+ return m||('Error '+st+' al llamar a Gemini.')}
+async function ask(q){q=(q||$('#gq').value).trim();if(!q||busy)return;
+ if(!GK){bub('ai','Primero pega tu clave de API de Gemini arriba y pulsa «Guardar».');$('#kbox').open=true;return}
+ busy=true;$('#gs').disabled=true;$('#gq').value='';bub('me',q);const w=bub('ai','Pensando…');
+ hist.push({role:'user',parts:[{text:q}]});
+ try{
+  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+$('#gm').value+':generateContent',{method:'POST',
+   headers:{'Content-Type':'application/json','x-goog-api-key':GK},
+   body:JSON.stringify({systemInstruction:{parts:[{text:SYS}]},contents:hist.slice(-11),generationConfig:{temperature:0.4,maxOutputTokens:2048}})});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(errMsg(res.status,j));
+  const t=((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||'').join('').trim();
+  if(!t)throw new Error('La IA no devolvió texto (puede que la respuesta se bloqueara). Reformula la pregunta.');
+  hist.push({role:'model',parts:[{text:t}]});w.innerHTML=fmt(t)
+ }catch(e){hist.pop();w.className='bub ai err';w.textContent='⚠ '+(e instanceof TypeError?'No se pudo conectar con Gemini. Revisa tu conexión.':e.message)}
+ busy=false;$('#gs').disabled=false;$('#chat').scrollTop=$('#chat').scrollHeight}
+function goAsk(q){$('#ia').scrollIntoView({behavior:'smooth'});ask(q)}
+function explainAddr(){const s=$('#fi').value.trim();if(!s){$('#fo').innerHTML='<div class="msg bad">Escribe primero una dirección en el cuadro.</div>';return}
+ const c=check(s),v=c.ok?'válida; su forma corta es '+comp(c.full.map(trim)):'inválida: '+c.reason;
+ goAsk('Explícame paso a paso esta dirección IPv6: '+s+'. Mi validador dice que es '+v+'. Explica por qué, usando la regla 1, la regla 2 y la restricción del ::.')}
+function explainQ(){const s=$('#q').textContent;
+ goAsk('Explícame por qué esta dirección IPv6 es '+(QR.ok?'válida':'inválida')+': '+s+(QR.ok?'':'. Motivo según mi validador: '+QR.reason)+'. Sé breve y usa las reglas de IPv6.')}
+$('#chips').innerHTML=CHIPS.map((c,i)=>'<button class="chip" data-i="'+i+'">'+esc(c)+'</button>').join('');
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>ask(CHIPS[+b.dataset.i]));
+$('#gk').onkeydown=e=>{if(e.key=='Enter')saveKey()};
+loadKey();clearChat();
+
 e1();e2();e3();nq();ex();np();
 
 </script>
