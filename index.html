@@ -35,6 +35,7 @@ table{border-collapse:collapse;width:100%;font:15px 'Courier New',monospace;marg
 td,th{border:1px solid #e3cdb8;padding:4px 8px;text-align:center}th{background:#FDE3C8;font-family:Arial,sans-serif}
 input,select{font:700 18px 'Courier New',monospace;padding:6px 8px;border:2px solid #4A1D12;border-radius:6px;max-width:100%}
 .ref{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px 10px;font:700 14px 'Courier New',monospace}
+#gk{-webkit-text-security:disc;text-security:disc}
 .small{font-size:14px;color:#7a5a4a;margin:6px 0}
 details{background:#fff;border:2px solid #e3cdb8;border-radius:6px;padding:8px 12px;margin:10px 0}
 summary{cursor:pointer;font-weight:700;color:#C8462B}
@@ -103,7 +104,7 @@ summary{cursor:pointer;font-weight:700;color:#C8462B}
 <p>Haz preguntas sobre IPv6, el <span class="mono">::</span> o las conversiones. La IA solo responde sobre estos temas.</p>
 <details id="kbox" open><summary>Clave de API de Gemini</summary>
 <p class="small">Consíguela gratis en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. Se guarda solo en esta pestaña (se borra al cerrarla) y no está escrita en el código de la página.</p>
-<input id="gk" type="password" size="28" placeholder="Pega tu clave aquí" autocomplete="off">
+<input id="gk" type="text" name="gemini-key-nofill" size="28" placeholder="Pega tu clave aquí" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore>
 <button class="btn alt" onclick="saveKey()">Guardar</button>
 <select id="gm" title="Modelo"><option value="gemini-3.8-flash">gemini-3.8-flash</option><option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (más ligero)</option></select>
 </details>
@@ -241,10 +242,12 @@ let hist=[],busy=false,GK='';
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=s=>esc(s).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<span class="mono">$1</span>').replace(/\n/g,'<br>');
 function loadKey(){try{GK=sessionStorage.getItem('gkey')||''}catch(e){}if(GK){$('#gk').value=GK;loadModels()}}
-function saveKey(){GK=$('#gk').value.trim();try{sessionStorage.setItem('gkey',GK)}catch(e){}
- if(!GK){$('#gst').textContent='Escribe una clave primero.';return}loadModels()}
+function saveKey(){GK=$('#gk').value.replace(/[\s"'`]/g,'');$('#gk').value=GK;try{sessionStorage.setItem('gkey',GK)}catch(e){}
+ if(!GK){$('#gst').textContent='Escribe una clave primero.';return}
+ if(!/^AIza[0-9A-Za-z_-]{30,}$/.test(GK))$('#gst').textContent='Aviso: esta clave no tiene el formato habitual de Gemini (empieza con AIza). Se probará igual…';
+ loadModels()}
 const cmpV=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const t=(y[i]||0)-(x[i]||0);if(t)return t}return 0};
-async function loadModels(){if(!GK)return;$('#gst').textContent='Comprobando la clave…';
+async function loadModels(){if(!GK)return;if(!$('#gst').textContent.startsWith('Aviso'))$('#gst').textContent='Comprobando la clave…';
  try{
   const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':GK}});
   const j=await res.json().catch(()=>({}));
