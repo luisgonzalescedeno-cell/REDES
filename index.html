@@ -106,7 +106,8 @@ summary{cursor:pointer;font-weight:700;color:#C8462B}
 <input id="gk" type="password" size="28" placeholder="Pega tu clave aquí" autocomplete="off">
 <button class="btn alt" onclick="saveKey()">Guardar</button>
 <select id="gm" title="Modelo"><option value="gemini-3.8-flash">gemini-3.8-flash</option><option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (más ligero)</option></select>
-<div class="small" id="gst"></div></details>
+</details>
+<div class="small" id="gst"></div>
 <div class="chips" id="chips"></div>
 <div class="chat" id="chat" aria-live="polite"></div>
 <div class="send"><input id="gq" placeholder="Escribe tu pregunta…" onkeydown="if(event.key=='Enter')ask()"><button class="btn" id="gs" onclick="ask()">Enviar</button><button class="btn alt" onclick="clearChat()">Limpiar</button></div>
@@ -239,16 +240,29 @@ const CHIPS=['¿Por qué solo se puede usar :: una vez?','Explícame la regla 2 
 let hist=[],busy=false,GK='';
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=s=>esc(s).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<span class="mono">$1</span>').replace(/\n/g,'<br>');
-function loadKey(){try{GK=sessionStorage.getItem('gkey')||''}catch(e){}if(GK){$('#gk').value=GK;$('#kbox').open=false;$('#gst').textContent='Clave guardada en esta pestaña.'}}
+function loadKey(){try{GK=sessionStorage.getItem('gkey')||''}catch(e){}if(GK){$('#gk').value=GK;loadModels()}}
 function saveKey(){GK=$('#gk').value.trim();try{sessionStorage.setItem('gkey',GK)}catch(e){}
- $('#gst').textContent=GK?'Clave guardada en esta pestaña.':'Escribe una clave primero.';if(GK)$('#kbox').open=false}
+ if(!GK){$('#gst').textContent='Escribe una clave primero.';return}loadModels()}
+const cmpV=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const t=(y[i]||0)-(x[i]||0);if(t)return t}return 0};
+async function loadModels(){if(!GK)return;$('#gst').textContent='Comprobando la clave…';
+ try{
+  const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':GK}});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok){$('#gst').textContent='⚠ '+errMsg(res.status,j);$('#kbox').open=true;return}
+  const ver=n=>(n.match(/^gemini-([\d.]+)/)||[0,'0'])[1],rank=n=>/-preview|-exp/.test(n)?3:/-flash$/.test(n)?0:/-flash-lite$/.test(n)?1:2;
+  const ids=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/','')).filter(n=>/^gemini-/.test(n)&&!/tts|image|live|embedding|aqa|robotics|computer|audio|transcribe|omni|veo|imagen|nano/.test(n));
+  ids.sort((a,b)=>rank(a)-rank(b)||cmpV(ver(a),ver(b))||a.localeCompare(b));
+  if(!ids.length){$('#gst').textContent='La clave es válida, pero no tiene modelos de texto disponibles.';return}
+  $('#gm').innerHTML=ids.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+  $('#gst').textContent='Clave válida ('+ids.length+' modelos disponibles). Modelo elegido: '+ids[0]+'.';$('#kbox').open=false
+ }catch(e){$('#gst').textContent='⚠ No se pudo conectar con Gemini. Revisa tu conexión.'}}
 function bub(role,text){const b=document.createElement('div');b.className='bub '+role;if(role=='ai')b.innerHTML=fmt(text);else b.textContent=text;
  $('#chat').appendChild(b);$('#chat').scrollTop=$('#chat').scrollHeight;return b}
 function clearChat(){hist=[];$('#chat').innerHTML='';bub('ai','Hola, soy tu tutor de IPv6. Pregúntame lo que quieras o toca una de las preguntas de arriba.')}
 function errMsg(st,j){const m=(j&&j.error&&j.error.message)||'';
  if(st==400&&/api key/i.test(m))return'La clave de API no es válida. Revísala en Google AI Studio.';
- if(st==401||st==403)return'La clave no tiene permiso para usar este modelo. Revisa la clave o prueba otro modelo.';
- if(st==404)return'Ese modelo no está disponible. Elige otro en la lista.';
+ if(st==401||st==403)return'Google rechazó la solicitud ('+st+'): '+(m||'sin detalle')+' — Revisa que la clave sea de Google AI Studio y esté activa.';
+ if(st==404)return'Ese modelo no está disponible para tu clave. Elige otro en la lista.';
  if(st==429)return'Se alcanzó el límite de uso. Espera un minuto o cambia de modelo.';
  return m||('Error '+st+' al llamar a Gemini.')}
 async function ask(q){q=(q||$('#gq').value).trim();if(!q||busy)return;
